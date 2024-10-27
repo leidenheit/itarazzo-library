@@ -187,19 +187,17 @@ public class WorkflowExecutor {
                 }
                 case RETRY -> {
                     int retryCount = retryCounters.getOrDefault(currentStep.getStepId(), 0);
-                    retryCount++;
-
                     if (retryCount >= failureAction.getRetryLimit()) {
                         var msg = "Reached retry limit failure action '%s'".formatted(failureAction.getName());
                         log.error(msg);
                         throw new ItarazzoInterruptException(msg);
                     }
-
+                    retryCount++;
                     retryCounters.put(currentStep.getStepId(), retryCount);
                     log.info("Triggered failure action '{}' as {}: retrying {}/{} after waiting {} seconds",
                             failureAction.getName(),
                             failureAction.getType(),
-                            retryCount + 1,
+                            retryCount,
                             failureAction.getRetryLimit(),
                             failureAction.getRetryAfter().longValue());
 

@@ -1,49 +1,109 @@
-# ITarazzo
+# Itarazzo Library
+Enables seamless execution of OpenAPI Initiative (OAI) [Arazzo Specifications](https://spec.openapis.org/arazzo/latest.html) in an integration testing 
+context. Designed for developers who need automated and test-driven verification of API workflows, *Itarazzo Library* 
+extends integration testing capabilities using a range of powerful technologies.
 
-Bringing automated testing of API-Workflows to life with OAS and Arazzo.
-
-Overview
 ---
-This project provides API developers using OpenAPI Specification (OAS) and Arazzo with an automated and simple way to test workflows. The framework leverages Rest-Assured for API testing and Maven Surefire for generating test reports, making it easy to integrate into existing CI/CD pipelines using Docker.
+>**Note**: This project is developed in my free time alongside family and full-time work. Any feedback or contributions are greatly appreciated as I strive to make this tool as helpful as possible for other developers.
+---
 
-Features
---
-* Parsing: Arazzo and OAS parsing (Work In Progress)
-* Validation: JSON Schema validation using Everit (Work In Progress)
-* Execution: automated workflow execution using Rest-Assured (Work In Progress)
-* Test Reporting:
-test execution reports with Maven Surefire (Work In Progress)
-* Configuration:
-fully configurable through the pom.xml - No source code modifications required
-  - Path to OAS file
-  - Path to Arazzo file
-  - Path to input values file 
-* Authorization Support: 
-  - `BasicAuth` support (Not yet implemented)
-* CI Compatibility: available as a Docker image for seamless CI/CD integration (Not yet implemented)
-* Example Application Structure: The repository is organized into separate modules for clarity:
+## Key Features
+- **Arazzo Specification Integration**: Executes Arazzo Specifications within integration tests, allowing automated testing 
+  of complex workflows based on [OpenAPI definitions](https://spec.openapis.org/oas/v3.1.1.html).
+- **End-to-End API Testing**: Facilitates comprehensive testing with support for request validation, response parsing, and 
+  detailed logging.
+---
 
-Getting Started
---
-* TBD
+## Technologies Used
+Itarazzo Library leverages a robust stack of technologies to provide extensive API testing support:
+- **JUnit 5**: For structuring and running integration tests.
+- **Jackson**: For efficient JSON parsing and serialization.
+- **Everit JSON Path**: Enables flexible, path-based JSON validation.
+- **XPath**: Supports XML handling, useful for APIs returning XML responses.
+- **RestAssured**: Simplifies HTTP requests and validations for RESTful APIs.
+- **Swagger**: Parses OpenAPI specifications, enabling standardized API testing against specifications.
+---
 
-Maven Dependency
---
-* TBD
+## Getting Started
+### Prerequisites
+Ensure you have the following dependencies in your project’s pom.xml:
 
-Docker Image on DockerHub
---
-* TBD
+```xml
+<dependencies>
+  <dependency>
+    <groupId>de.leidenheit</groupId>
+    <artifactId>itarazzo-library</artifactId>
+    <version>0.0.1</version>
+    <scope>test</scope>
+  </dependency>
+  
+  <!-- a logging implementation e.g. Logback -->
+  <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.5.6</version>
+  </dependency>
+  <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+      <version>1.5.6</version>
+  </dependency>
+</dependencies>
+```
 
-Technologies Used
---
-* SpringBoot: for application development
-* JUnit: for testing and assertions
-* OAI Arazzo: for defining and executing workflows
-* OAI OpenAPI: for API specification
-* Swagger: for API documentation
-* Jackson: for parsing
-* Everit JSON: for JSON Schema validation
-* JSONPath: JSON path validation
-* XPath: XML path validation
+### Basic Usage
+To use Itarazzo Library in your integration tests, start by creating a test class that extends the capabilities of the 
+library with the JUnit 5 `ItarazzoExtension`.
 
+```java
+@ExtendWith(ItarazzoExtension.class)
+class ExampleArazzoIT {
+
+    @TestFactory
+    @DisplayName("Workflow")
+    Stream<DynamicTest> executeWorkflow(final ArazzoSpecification arazzoSpec, final String inputsFilePath) {
+        var inputs = InputsReader.readInputs(inputsFilePath);
+        ItarazzoDynamicTest dynamicTest = new ItarazzoDynamicTest();
+        return dynamicTest.generateWorkflowTests(arazzoSpec, inputs);
+    }
+}
+```
+
+### Configuration Options
+#### Environment Variables
+To define specific Arazzo files and inputs:
+
+- `ARAZZO_FILE`: Specifies the path to the Arazzo YAML specification file. 
+- `ARAZZO_INPUTS_FILE`: Path to a valid JSON file containing test inputs.
+
+These can be set directly in the test environment or passed as system properties in Maven.
+
+---
+## Custom Extension Points (coming soon)
+The Itarazzo Library features extensibility, allowing you to configure and customize API interactions precisely to 
+match your testing requirements. Below are some common extension points.
+
+### Custom Server Selection
+To designate a server specifically for the integration test, use the `x-itarazzo-designated-server` extension. 
+If no server is designated, the library considers the first server from the OpenAPI Specification (OAS).
+
+Example in the OpenAPI file:
+```yaml
+servers:
+- url: https://api.example.com/v1
+  x-itarazzo-designated-server: true
+```
+This configuration ensures that the Itarazzo Library targets the specified server during test execution.
+
+---
+## Running Tests
+To execute the tests, run the following Maven command:
+
+```bash
+mvn verify -Darazzo.file="/path/to/arazzo.yaml" -Darazzo.inputs.file="/path/to/inputs.json"
+```
+This command triggers the workflow specified in your Arazzo YAML and applies test inputs from the JSON file.
+
+---
+### Contributions
+Contributions are welcome! If you encounter any issues or have suggestions, please submit them as issues or pull requests.
