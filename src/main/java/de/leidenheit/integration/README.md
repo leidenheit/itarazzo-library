@@ -1,0 +1,1 @@
+`integration` contains business capabilities in order to execute arazzo (may also contain a basic IT that runs the arazzos as a whole).

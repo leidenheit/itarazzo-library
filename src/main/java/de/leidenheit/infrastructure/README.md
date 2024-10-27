@@ -1,0 +1,1 @@
+`infrastructure` takes care fo the technical details in order to work with arazzo, such as parsing and expression resolving.

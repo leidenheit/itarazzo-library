@@ -1,0 +1,79 @@
+openapi: "3.0.1"
+info:
+  title: "Cookie API"
+  description: "An API to handle cookies."
+#servers:
+#  - url: "http://localhost:8080"
+#    description: "Production"
+#  - url: "http://localhost:8080"
+#    description: "Develop"
+paths:
+  /cookies/{id}/eat:
+    post:
+      tags:
+        - "cookie-api"
+      summary: "Eats a cookie"
+      operationId: "eatCookie"
+      parameters:
+        - name: "id"
+          in: "path"
+          description: "Id of a cookie."
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "202":
+          description: "That was a delicious cookie."
+          headers:
+            location:
+              description: "The location URI."
+              style: "simple"
+              schema:
+                type: "string"
+          content:
+            text/plain: {}
+        "404":
+          description: "Cookie not found."
+          content:
+            text/plain: {}
+  /cookies/{id}:
+    get:
+      tags:
+        - "cookie-api"
+      summary: "Returns cookie by its id"
+      operationId: "findCookie"
+      parameters:
+        - name: "id"
+          in: "path"
+          description: "Id of a cookie."
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Here is the cookie."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CookieDto"
+        "404":
+          description: "Cookie not found."
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CookieDto"
+components:
+  schemas:
+    CookieDto:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: "Id of the cookie."
+          format: "int64"
+        name:
+          type: "string"
+          description: "Name of the cookie."
+      description: "A cookie."

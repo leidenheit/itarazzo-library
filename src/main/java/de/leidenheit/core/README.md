@@ -1,0 +1,1 @@
+`core` contains the most important business capabilities for working with arazzo, such as executors or the model.

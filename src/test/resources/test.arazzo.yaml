@@ -1,0 +1,146 @@
+arazzo: 1.0.0
+info:
+  title: A cookie eating workflow
+  summary: This Arazzo Description showcases the workflow for how to eat a cookie through a sequence of API calls
+  description: |
+    This Arazzo Description walks you through the workflow and steps of `searching` and `eating` an available cookie.
+  version: 0.0.1
+  extensions:
+    x-hugo: "Hugo"
+sourceDescriptions:
+  - name: cookieApi
+    url: src/test/resources/test.openapi.yaml
+    type: openapi
+    x-bernd: "Bernd"
+workflows:
+  - workflowId: retrieveCookieAndEatCookie
+    summary: Retrieve cookie by an identifier and eat it
+    description: This workflow lays out the steps to retrieve a cookie and then eat it.
+    inputs:
+      $ref: '#/components/inputs/cookieIds'
+    steps:
+      - stepId: retrieveCookieStep
+        description: This step demonstrates the retrieval of a cookie step.
+        operationPath: '{$sourceDescriptions.cookieApi.url}#/paths/~1cookies~1{id}/get'
+        #operationId: findCookie
+        parameters:
+          - reference: $components.parameters.id
+        successCriteria:
+          # assertions to determine step was successful
+          - condition: $statusCode == 200
+          - context: $response.body
+            condition: '#/name == Chocolate'
+            type: jsonpath
+            version: draft-goessner-dispatch-jsonpath-00
+          - context: $response.body
+            condition: $.id == $inputs.cookieId
+            type: jsonpath
+            version: draft-goessner-dispatch-jsonpath-00
+          - context: "<root><id>4711</id><name>Chocolate</name></root>"
+            condition: '/root/id = 4711'
+            type: xpath
+            version: xpath-30
+          - context: $statusCode
+            condition: '^200$'
+            type: regex
+        onSuccess:
+          - reference: $components.successActions.gotoEatCookie
+        onFailure:
+          - reference: $components.failureActions.retryFail
+        outputs:
+          # outputs from this step
+          cookieDto: $response.body
+          requestedCookieId: $request.path.id
+      - stepId: eatCookieStep
+        description: Eat a cookie identified by its id.
+        operationPath: '{$sourceDescriptions.cookieApi.url}#/paths/~1cookies~1{id}~1eat/post'
+        #operationId: eatCookie
+        parameters:
+          - name: id
+            in: path
+            value: $inputs.cookieId
+        successCriteria:
+          # assertions to determine step was successful
+          - context: $response.header.location
+            condition: '^/cookies/4711/eat$'
+            type: regex
+          - condition: $response.header.location != null
+          - condition: $response.body == null
+    outputs:
+      # outputs from this wf
+      cookieDto: $steps.retrieveCookieStep.outputs.cookieDto
+      requestedCookieId: $steps.retrieveCookieStep.outputs.requestedCookieId
+  - workflowId: retrieveNonExistingCookie
+    summary: Fail due to cookie not found
+    description: This workflow lays out the steps to look for a non existing cookie.
+    inputs:
+      type: object
+      properties:
+        cookieId:
+          type: number
+        cookieIdWhichDoesNotExist:
+          type: number
+    dependsOn:
+      - retrieveCookieAndEatCookie
+    steps:
+      - stepId: retrieveNotExistingCookieStep
+        description: 'This step demonstrates the retrieval of a non-existing cookie step {$sourceDescriptions.cookieApi.type}.'
+        operationId: $sourceDescriptions.cookieApi.findCookie
+        parameters:
+          # parameters to inject into the findCookie operation (parameter name must be resolvable at the referenced operation and the value is determined using {expression} syntax)
+          - name: id
+            in: path
+            value: $inputs.cookieIdWhichDoesNotExist
+        successCriteria:
+          # assertions to determine step was successful
+          - condition: $statusCode == 404
+components:
+  parameters:
+    id:
+      name: id
+      in: path
+      value: $inputs.cookieId
+    page:
+      name: page
+      in: path
+      value: $inputs.pagination.page
+    pageSize:
+      name: pageSize
+      in: path
+      value: $inputs.pagination.pageSize
+  inputs:
+    cookieIds:
+      type: object
+      properties:
+        cookieId:
+          type: number
+        cookieIdWhichDoesNotExist:
+          type: number
+    pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
+  successActions:
+    gotoEatCookie:
+      name: successRetrieveCookieAndEatCookieAndEnd
+      type: goto
+      stepId: eatCookieStep
+      criteria:
+        # assertions to determine if this action should be executed
+        - condition: $statusCode == 200
+  failureActions:
+    retryFail:
+      name: retryRetrieveCookieAndEatCookieFiveTimes
+      type: retry
+      retryAfter: 1 # seconds
+      retryLimit: 5
+      stepId: eatCookieStep
+      criteria:
+        # assertions to determine if this action should be executed
+        - condition: $statusCode == 404
+  x-hugo-b: HugoB
