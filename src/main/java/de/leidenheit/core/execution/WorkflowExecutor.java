@@ -29,19 +29,19 @@ public class WorkflowExecutor {
 
     private final ArazzoSpecification arazzo;
     private final Map<String, Object> inputs;
-    private final Map<String, Map<String, Object>> outputsOfWorkflows;
     private final SpecExpressionResolver resolver;
     private final StepExecutor stepExecutor;
 
-    public WorkflowExecutor(final ArazzoSpecification arazzo, final Map<String, Object> inputs, final Map<String, Map<String, Object>> outputsOfWorkflows) {
+    public WorkflowExecutor(final ArazzoSpecification arazzo, final Map<String, Object> inputs) {
         this.arazzo = arazzo;
         this.inputs = inputs;
-        this.outputsOfWorkflows = new HashMap<>(outputsOfWorkflows);
         this.resolver = new SpecExpressionResolver(arazzo, inputs);
-        this.stepExecutor = new RestAssuredStepExecutor(arazzo, new CriterionEvaluator(resolver, new ObjectMapper()), resolver); // TODO step executor as dynamic factory
+
+        var criterionEvaluator = new CriterionEvaluator(resolver, new ObjectMapper());
+        this.stepExecutor = new RestAssuredStepExecutor(arazzo, criterionEvaluator, resolver); // TODO as dynamic factory
     }
 
-    public Map<String, Map<String, Object>> executeWorkflow(final Workflow workflow) {
+    public void executeWorkflow(final Workflow workflow) {
         log.info("Executing workflow '{}' with inputs: {}", workflow.getWorkflowId(), inputs.toString());
 
         Map<String, Integer> retryCounters = new HashMap<>();
@@ -74,9 +74,6 @@ public class WorkflowExecutor {
         }
         var workflowOutputs = handleOutputs(workflow, resolver);
         log.info("Finished workflow '{}': outputs={}", workflow.getWorkflowId(), workflowOutputs);
-
-        outputsOfWorkflows.put(workflow.getWorkflowId(), workflowOutputs);
-        return outputsOfWorkflows;
     }
 
     private ExecutionDecision handleExecutionResultActions(final ArazzoSpecification arazzo,
@@ -109,8 +106,7 @@ public class WorkflowExecutor {
 
     private ExecutionDecision handleGotoWorkflowAction(final ArazzoSpecification arazzo,
                                                        final String workflowId) {
-        var refOutputs = handleWorkflowIdExecutionReference(arazzo, workflowId);
-        outputsOfWorkflows.putAll(refOutputs);
+        handleWorkflowIdExecutionReference(arazzo, workflowId);
         // one-way to another workflow will end the current workflow execution
         return ExecutionDecision.builder().mustEnd(true).build();
     }
@@ -215,8 +211,7 @@ public class WorkflowExecutor {
                             log.warn("Failure action reference execution result will be ignored for type RETRY");
                         }
                     } else if (Objects.nonNull(failureAction.getWorkflowId())) {
-                        var refOutputs = handleWorkflowIdExecutionReference(arazzo, failureAction.getWorkflowId());
-                        outputsOfWorkflows.putAll(refOutputs);
+                        handleWorkflowIdExecutionReference(arazzo, failureAction.getWorkflowId());
                     }
 
                     // retry the current step
@@ -254,6 +249,7 @@ public class WorkflowExecutor {
             resolvedOutputs.put(key, resolvedOutput);
         });
 
+        addResolvedOutputs(workflow.getWorkflowId(), resolvedOutputs);
         return resolvedOutputs;
     }
 
@@ -274,10 +270,10 @@ public class WorkflowExecutor {
         return handleExecutionResultActions(arazzo, workflow, refStep, executionResult, inputs, null, resolver);
     }
 
-    private Map<String, Map<String, Object>> handleWorkflowIdExecutionReference(final ArazzoSpecification arazzo,
-                                                                                final String referencedWorkflowId) {
+    private void handleWorkflowIdExecutionReference(final ArazzoSpecification arazzo,
+                                                    final String referencedWorkflowId) {
         var workflowToTransferTo = findWorkflowByWorkflowId(arazzo, referencedWorkflowId);
-        return executeWorkflow(workflowToTransferTo);
+        executeWorkflow(workflowToTransferTo);
     }
 
     private SourceDescription findRelevantSourceDescriptionByReferencedWorkflowId(final ArazzoSpecification arazzo,
@@ -347,9 +343,8 @@ public class WorkflowExecutor {
         var refWorkflow = findWorkflowByWorkflowId(sourceDescription.getReferencedArazzo(), currentStep.getWorkflowId());
 
         log.info("Step '{}' delegates by reference: workflowId='{}'", currentStep.getStepId(), refWorkflow.getWorkflowId());
-        var workflowExecutor = new WorkflowExecutor(sourceDescription.getReferencedArazzo(), inputs, outputsOfWorkflows);
-        var refWorkflowOutputs = workflowExecutor.executeWorkflow(refWorkflow);
-        outputsOfWorkflows.putAll(refWorkflowOutputs);
+        var workflowExecutor = new WorkflowExecutor(sourceDescription.getReferencedArazzo(), inputs);
+        workflowExecutor.executeWorkflow(refWorkflow);
     }
 
     private void doWait(final Long seconds) {
@@ -357,7 +352,13 @@ public class WorkflowExecutor {
             Thread.sleep(seconds * 1000L);
         } catch (InterruptedException e) {
             log.error("Wait-Timer was interrupted: {}", e.getMessage());
+            throw new ItarazzoInterruptException(e);
         }
+    }
+
+    private void addResolvedOutputs(final String workflowId, final Map<String, Object> outputs) {
+        outputs.forEach((key, value) ->
+                resolver.addResolved("$workflows.%s.outputs.%s".formatted(workflowId, key), value));
     }
 
     @Data

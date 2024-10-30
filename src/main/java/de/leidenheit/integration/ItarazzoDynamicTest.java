@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DynamicTest;
 import org.opentest4j.TestAbortedException;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
@@ -18,7 +17,6 @@ import java.util.stream.Stream;
 public class ItarazzoDynamicTest {
 
     private final AtomicBoolean shouldInterrupt = new AtomicBoolean(false);
-    private Map<String, Map<String, Object>> outputsOfWorkflows = new LinkedHashMap<>();
 
     public Stream<DynamicTest> generateWorkflowTests(final ArazzoSpecification arazzo, final JsonNode arazzoInputs) {
         return arazzo.getWorkflows().stream()
@@ -44,7 +42,7 @@ public class ItarazzoDynamicTest {
     private void executeWorkflow(final ArazzoSpecification arazzo,
                                  final Workflow workflow,
                                  final Map<String, Object> inputs) {
-        var executor = new WorkflowExecutor(arazzo, inputs, outputsOfWorkflows);
-        outputsOfWorkflows = executor.executeWorkflow(workflow);
+        var executor = new WorkflowExecutor(arazzo, inputs);
+        executor.executeWorkflow(workflow);
     }
 }

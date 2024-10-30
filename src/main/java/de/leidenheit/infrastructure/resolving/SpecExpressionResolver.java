@@ -37,7 +37,7 @@ public class SpecExpressionResolver extends HttpContextExpressionResolver {
     @Override
     public Object resolveExpression(final String expression, final ResolverContext context) {
         // re-use already resolved expressions
-        Object resolved = expressionProvider.findResolved(expression);
+        Object resolved = findResolved(expression);
 
         if (Objects.isNull(resolved)) {
             if (expression.startsWith("$inputs.")) {
@@ -74,7 +74,7 @@ public class SpecExpressionResolver extends HttpContextExpressionResolver {
 
             if (Objects.nonNull(resolved) && !expression.equalsIgnoreCase(resolved.toString())) {
                 // add resolved expression to reference map
-                expressionProvider.addResolved(expression, resolved);
+                addResolved(expression, resolved);
             }
         }
         return resolved;
@@ -116,6 +116,10 @@ public class SpecExpressionResolver extends HttpContextExpressionResolver {
 
     public void addResolved(final String key, final Object resolved) {
         this.expressionProvider.addResolved(key, resolved);
+    }
+
+    public Object findResolved(final String expression){
+        return expressionProvider.findResolved(expression);
     }
 
     private JsonNode resolveSourceDescription(final ArrayNode sourceDescriptionsArray, final String keyPath) {

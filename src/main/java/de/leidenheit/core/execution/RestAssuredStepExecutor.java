@@ -20,6 +20,8 @@ import de.leidenheit.infrastructure.evaluation.CriterionEvaluator;
 import de.leidenheit.infrastructure.resolving.SpecExpressionResolver;
 import de.leidenheit.infrastructure.utils.JsonPointerUtils;
 import io.restassured.RestAssured;
+import io.restassured.config.EncoderConfig;
+import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
 import io.restassured.http.Method;
 import io.restassured.response.Response;
@@ -41,10 +43,12 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -108,10 +112,21 @@ public class RestAssuredStepExecutor implements StepExecutor {
                     return ctx.next(requestSpec, responseSpec);
                 });
 
+        // TODO enable for verbose rest assured logs
+        //  requestSpecification.log().all();
+
+        // disabled automatic appending of charsets to binary content types
+        requestSpecification.config(RestAssuredConfig.config().encoderConfig(
+                EncoderConfig.encoderConfig().appendDefaultContentCharsetToContentTypeIfUndefined(false)));
+
         // apply uri
         String serverUrl = findServerUrl(sourceDescription);
         requestSpecification.baseUri(serverUrl);
 
+        // apply default content type; this will be overridden if any content type header is applied afterward
+        requestSpecification.contentType(ContentType.JSON);
+
+        // TODO refactor this mess
         // apply parameters
         if (Objects.nonNull(step.getParameters())) {
             // query parameters
@@ -157,10 +172,39 @@ public class RestAssuredStepExecutor implements StepExecutor {
             if (!pathParameterMap.isEmpty()) {
                 requestSpecification.pathParams(pathParameterMap);
             }
-        }
 
-        // apply default content type
-        requestSpecification.contentType(ContentType.JSON);
+            // body (form data)
+            var bodyFormDataParameterMap = step.getParameters().stream()
+                    .filter(parameter -> Parameter.ParameterIn.BODY.equals(parameter.getIn()))
+                    .collect(Collectors.toMap(
+                            Parameter::getName,
+                            parameter -> resolver.resolveExpression(parameter.getValue().toString(), null)
+                    ));
+            if (!bodyFormDataParameterMap.isEmpty()) {
+                // differentiate form data by applied header
+                var isMultipart = headerParameterMap.entrySet().stream()
+                        .filter(headerEntry -> "Content-Type".equals(headerEntry.getKey())
+                                && ContentType.MULTIPART.matches(headerEntry.getValue().toString()))
+                        .findFirst()
+                        .orElse(null);
+                if (Objects.nonNull(isMultipart)) {
+                    log.info("Applying multipart form data: data={}", bodyFormDataParameterMap);
+                    bodyFormDataParameterMap.forEach((name, data) -> {
+                        if (data instanceof String dataAsString && dataAsString.contains(";type=")) {
+                            String[] parts = dataAsString.split(";type=");
+                            String file = parts[0];
+                            String mimeType = parts.length > 1 ? parts[1] : ContentType.BINARY.toString();
+                            requestSpecification.multiPart(name, new File(file), mimeType);
+                        } else {
+                            requestSpecification.multiPart(name, data);
+                        }
+                    });
+                } else {
+                    log.info("Applying form data: {}", bodyFormDataParameterMap);
+                    requestSpecification.formParams(bodyFormDataParameterMap);
+                }
+            }
+        }
 
         // apply body
         if (Objects.nonNull(step.getRequestBody())) {
@@ -179,9 +223,16 @@ public class RestAssuredStepExecutor implements StepExecutor {
                     }
                 }
             }
-            requestSpecification.body(resolvedPayload);
-        }
 
+            var handleAsBinary = ContentType.BINARY.matches(step.getRequestBody().getContentType());
+            if (handleAsBinary) {
+                var file = new File(resolvedPayload);
+                requestSpecification.body(file);
+            } else {
+                requestSpecification.body(resolvedPayload.getBytes(StandardCharsets.UTF_8));
+            }
+
+        }
         return requestSpecification;
     }
 
@@ -219,7 +270,7 @@ public class RestAssuredStepExecutor implements StepExecutor {
                                                                      final String operationId) {
         return sourceDescription.getReferencedOpenAPI().getPaths().entrySet().stream()
                 .flatMap(pathsEntry -> pathsEntry.getValue().readOperationsMap().entrySet().stream()
-                        .filter(operationEntry -> operationId.contains(operationEntry.getValue().getOperationId()))
+                        .filter(operationEntry -> operationId.endsWith(operationEntry.getValue().getOperationId()))
                         .map(matchingOperationEntry -> Map.entry(
                                 pathsEntry.getKey(),
                                 Method.valueOf(matchingOperationEntry.getKey().name().toUpperCase()))
