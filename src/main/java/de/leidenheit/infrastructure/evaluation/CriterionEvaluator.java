@@ -50,7 +50,8 @@ public class CriterionEvaluator {
         if (resolved instanceof String resolvedAsString) {
             return resolvedAsString;
         }
-        return null;
+        throw new ItarazzoIllegalStateException(
+                "Expected resolved context '%s' to be a string but was not".formatted(criterionContext));
     }
 
     private boolean evaluateSimpleCondition(final Criterion criterion, final ResolverContext resolverContext) {

@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import de.leidenheit.core.exception.ItarazzoIllegalStateException;
 import de.leidenheit.core.model.ArazzoSpecification;
 import de.leidenheit.infrastructure.utils.ResolverUtils;
+import lombok.SneakyThrows;
 
 import java.util.*;
 
@@ -34,6 +35,7 @@ public class SpecExpressionResolver extends HttpContextExpressionResolver {
         expressionProvider = ResolvedExpressionProvider.getInstance();
     }
 
+    @SneakyThrows
     @Override
     public Object resolveExpression(final String expression, final ResolverContext context) {
         // re-use already resolved expressions
@@ -69,7 +71,13 @@ public class SpecExpressionResolver extends HttpContextExpressionResolver {
                 throw new ItarazzoIllegalStateException("Expected to be handled by ArazzoComponentRefResolver but was not: %s"
                         .formatted(expression));
             } else {
-                return super.resolveExpression(expression, context);
+                resolved = super.resolveExpression(expression, context);
+                if (resolved instanceof String resolvedAsString) {
+                    return resolvedAsString;
+                } else {
+                    // TODO refactor
+                    return mapper.writeValueAsString(resolved);
+                }
             }
 
             if (Objects.nonNull(resolved) && !expression.equalsIgnoreCase(resolved.toString())) {

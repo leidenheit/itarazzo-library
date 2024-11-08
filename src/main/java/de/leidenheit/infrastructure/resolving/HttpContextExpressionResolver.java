@@ -3,14 +3,24 @@ package de.leidenheit.infrastructure.resolving;
 import com.jayway.jsonpath.JsonPath;
 import de.leidenheit.core.exception.ItarazzoIllegalStateException;
 import de.leidenheit.core.exception.ItarazzoUnsupportedException;
+import io.restassured.http.ContentType;
 import io.restassured.http.Headers;
 import io.restassured.response.Response;
 import io.restassured.specification.FilterableRequestSpecification;
 import io.restassured.specification.RequestSpecification;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
 
+// TODO refactor
 public class HttpContextExpressionResolver implements HttpExpressionResolver {
 
     @Override
@@ -31,15 +41,39 @@ public class HttpContextExpressionResolver implements HttpExpressionResolver {
                 if (responseBody.isBlank()) {
                     return null;
                 }
+                String subPath = null;
                 if (expression.contains("$response.body.")) {
-                    var subPath = expression.substring("$response.body.".length());
-                    try {
-                        return JsonPath.read(responseBody, "$.%s".formatted(subPath));
-                    } catch (Exception e) {
-                        throw new ItarazzoIllegalStateException("Invalid JSON path: '%s'".formatted(expression));
-                    }
+                    subPath = expression.substring("$response.body.".length());
+                } else if (expression.contains("$response.body#/")) {
+                    subPath = expression.substring("$response.body#/".length()).replace("/", ".");
                 }
-                return responseBody;
+
+                if (Objects.isNull(subPath)) return responseBody;
+
+                try {
+                    if (ContentType.JSON.matches(httpContext.getLatestContentType())) {
+                        return JsonPath.read(responseBody, "$.%s".formatted(subPath));
+                    } else if (ContentType.XML.matches(httpContext.getLatestContentType())) {
+                        Document document = DocumentBuilderFactory.newInstance()
+                                .newDocumentBuilder()
+                                .parse(new ByteArrayInputStream(responseBody.getBytes(StandardCharsets.UTF_8)));
+
+                        XPath xpath = XPathFactory.newInstance().newXPath();
+                        var xmlSubPath = subPath.replace(".", "/");
+                        var res = xpath
+                                .compile("/%s".formatted(xmlSubPath))
+                                .evaluate(document, XPathConstants.NODE);
+
+                        if (Objects.nonNull(res) && res instanceof Node resNode) {
+                            return resNode.getTextContent();
+                        }
+                        throw new ItarazzoIllegalStateException("Must not be null");
+                    }
+                    throw new ItarazzoUnsupportedException("Reading nested properties of response body requires a content type of JSON|XML");
+
+                } catch (Exception e) {
+                    throw new ItarazzoIllegalStateException("Invalid JSON path or XPath: '%s'".formatted(expression), e);
+                }
             }
             throw new ItarazzoUnsupportedException("Not supported: expression=%s".formatted(expression));
         } else if (expression.startsWith("$request.")) {
@@ -76,7 +110,7 @@ public class HttpContextExpressionResolver implements HttpExpressionResolver {
 
     @Override
     public String resolvePathParam(final String paramName, final Map<String, String> pathParams) {
-       return pathParams.get(paramName);
+        return pathParams.get(paramName);
     }
 
     @Override

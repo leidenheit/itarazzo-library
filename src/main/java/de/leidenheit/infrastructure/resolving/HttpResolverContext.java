@@ -13,4 +13,5 @@ public interface HttpResolverContext extends ResolverContext {
     FilterableRequestSpecification getLatestRequest();
     Response getLastestResponse();
     Objects getLatestMessage();
+    String getLatestContentType();
 }

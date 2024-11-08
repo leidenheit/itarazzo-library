@@ -354,6 +354,7 @@ public class RestAssuredStepExecutor implements StepExecutor {
     private void handleResponse(final RestAssuredContext restAssuredContext, final Response response) {
         restAssuredContext.setLastestResponse(response);
         restAssuredContext.setLatestStatusCode(response.statusCode());
+        restAssuredContext.setLatestContentType(response.getContentType());
     }
 
     private ExecutionResultContext handleResponse(final Step step,

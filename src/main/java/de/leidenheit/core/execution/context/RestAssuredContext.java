@@ -17,4 +17,5 @@ public class RestAssuredContext implements HttpResolverContext {
     private FilterableRequestSpecification latestRequest;
     private Response lastestResponse;
     private Objects latestMessage;
+    private String latestContentType;
 }
