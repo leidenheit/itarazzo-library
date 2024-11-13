@@ -67,7 +67,7 @@ public class HttpContextExpressionResolver implements HttpExpressionResolver {
                         if (Objects.nonNull(res) && res instanceof Node resNode) {
                             return resNode.getTextContent();
                         }
-                        throw new ItarazzoIllegalStateException("Must not be null");
+                        throw new ItarazzoIllegalStateException("Tried to resolved xpath %s but got null".formatted(xmlSubPath));
                     }
                     throw new ItarazzoUnsupportedException("Reading nested properties of response body requires a content type of JSON|XML");
 

@@ -4,24 +4,38 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>de.leidenheit</groupId>
-    <artifactId>itarazzo-library</artifactId>
+    <groupId>io.github.leidenheit</groupId>
+    <artifactId>itarazzo</artifactId>
     <version>0.1.0</version>
-    <name>Itarazzo Library</name>
-    <description>Bring automated API testing to life with openapi and arazzo</description>
     <packaging>jar</packaging>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>Enables seamless execution of OpenAPI Initiative (OAI) [Arazzo
+        Specifications](https://spec.openapis.org/arazzo/latest.html) in an integration testing context.
+    </description>
+    <url>https://github.com/leidenheit/itarazzo</url>
+
     <developers>
         <developer>
-            <name>leidenheit</name>
+            <name>Attila Varga</name>
+            <email>attila.varga.dev+github@gmail.com</email>
+            <url>https://github.com/leidenheit</url>
         </developer>
     </developers>
+
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
+
+    <scm>
+        <connection>scm:git:git://github.com/leidenheit/itarazzo-library.git</connection>
+        <developerConnection>scm:git:ssh://github.com:leidenheit/itarazzo-library.git</developerConnection>
+        <url>https://github.com/leidenheit/itarazzo-library</url>
+    </scm>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -174,6 +188,82 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- checksum in .m2 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>2.5.2</version>
+                <executions>
+                    <execution>
+                        <id>install-checksums</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>install</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <createChecksum>true</createChecksum>
+                </configuration>
+            </plugin>
+
+            <!-- sources -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- javadoc -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- sign artefacts -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.6</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- publish to maven -->
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.6.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+                    <autoPublish>true</autoPublish>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
 </project>

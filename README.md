@@ -4,14 +4,14 @@ context. Designed for developers who need automated and test-driven verification
 extends integration testing capabilities using a range of powerful technologies.
 
 ---
->**Note**: This project is developed in my free time alongside family and full-time work. Any feedback or contributions are greatly appreciated as I strive to make this tool as helpful as possible for other developers.
+
+**Note**: This project is developed in my free time alongside family and full-time work. Any feedback or contributions are greatly appreciated as I strive to make this tool as helpful as possible for other developers.
+
 ---
 
 ## Key Features
-- **Arazzo Specification Integration**: Executes Arazzo Specifications within integration tests, allowing automated testing 
-  of complex workflows based on [OpenAPI definitions](https://spec.openapis.org/oas/v3.1.1.html).
-- **End-to-End API Testing**: Facilitates comprehensive testing with support for request validation, response parsing, and 
-  detailed logging.
+- **Arazzo Specification Integration**: Executes Arazzo Specifications within integration tests, allowing automated e2e-testing 
+  of complex workflows with detailed logging.
 ---
 
 ## Technologies Used
@@ -31,10 +31,9 @@ Ensure you have the following dependencies in your project’s pom.xml:
 ```xml
 <dependencies>
   <dependency>
-    <groupId>de.leidenheit</groupId>
-    <artifactId>itarazzo-library</artifactId>
-    <version>0.0.1</version>
-    <scope>test</scope>
+    <groupId>io.github.leidenheit</groupId>
+    <artifactId>itarazzo</artifactId>
+    <version>0.1.0</version>
   </dependency>
   
   <!-- a logging implementation e.g. Logback -->
@@ -85,9 +84,9 @@ match your testing requirements. Below are some common extension points.
 
 ### Custom Server Selection
 To designate a server specifically for the integration test, use the `x-itarazzo-designated-server` extension. 
-If no server is designated, the library considers the first server from the OpenAPI Specification (OAS).
+If no server is designated, the library considers the first server from the referenced source description.
 
-Example in the OpenAPI file:
+Example in an OpenAPI file:
 ```yaml
 servers:
 - url: https://api.example.com/v1

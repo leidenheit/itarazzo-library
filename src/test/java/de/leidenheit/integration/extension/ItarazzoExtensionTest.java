@@ -50,7 +50,7 @@ class ItarazzoExtensionTest {
 
         // when & then
         Assertions.assertThrowsExactly(ItarazzoIllegalStateException.class, () ->
-                underTest.beforeAll(extensionContextMock), "hi");
+                underTest.beforeAll(extensionContextMock));
 
     }
 }

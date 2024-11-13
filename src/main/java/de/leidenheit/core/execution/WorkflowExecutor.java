@@ -243,7 +243,7 @@ public class WorkflowExecutor {
 
             if (Objects.isNull(resolvedOutput)) {
                 log.error("Expected output to be successfully resolved but was not: key={} value={}", key, value);
-                throw new ItarazzoIllegalStateException("Must not be null");
+                throw new ItarazzoIllegalStateException("Tried to resolved %s but got null".formatted(value));
             }
 
             resolvedOutputs.put(key, resolvedOutput);

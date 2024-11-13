@@ -52,7 +52,7 @@ class CriterionEvaluatorTest {
     }
 
     @Test
-    void shouldSuccessfullyEvalCriterionOfTypeJsonPath() throws JsonProcessingException {
+    void shouldSuccessfullyEvalCriterionOfTypeJsonPointer() throws JsonProcessingException {
         // given
         var jsonPathCriterion = Criterion.builder()
                 .type(Criterion.CriterionType.JSONPATH)
@@ -89,7 +89,7 @@ class CriterionEvaluatorTest {
     }
 
     @Test
-    void shouldSuccessfullyEvalCriterionOfTypeJsonPathAltCondition() throws JsonProcessingException {
+    void shouldSuccessfullyEvalCriterionOfTypeJsonPath() throws JsonProcessingException {
         // given
         var jsonPathCriterion = Criterion.builder()
                 .type(Criterion.CriterionType.JSONPATH)
@@ -98,11 +98,11 @@ class CriterionEvaluatorTest {
                         .version("draft-goessner-dispatch-jsonpath-00")
                         .build())
                 .condition("$.id == $inputs.cookieId")
-                .context("$response.body")
+                .context("$response.body.category")
                 .build();
 
         // mock for context value
-        given(resolverMock.resolveExpression("$response.body", resolverContextMock))
+        given(resolverMock.resolveExpression("$response.body.category", resolverContextMock))
                 .willReturn("{\"id\": 4711}");
         // mock for expected values
         given(resolverMock.resolveString("$inputs.cookieId"))

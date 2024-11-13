@@ -61,7 +61,6 @@ public class CriterionEvaluator {
 
     private boolean evaluateRegex(final Criterion criterion, final ResolverContext resolverContext) {
         String contextValue = resolveCriterionContext(criterion.getContext(), resolverContext);
-        if (Objects.isNull(contextValue)) return false;
         // e.g. $response.body.fieldHugo -> ^FieldHugoValue$
         return contextValue.matches(criterion.getCondition());
     }
@@ -69,7 +68,6 @@ public class CriterionEvaluator {
     private boolean evaluateJsonPath(final Criterion criterion, final ResolverContext resolverContext) {
         // resolve the context value (e.g., response body)
         String contextValue = resolveCriterionContext(criterion.getContext(), resolverContext);
-        if (Objects.isNull(contextValue)) return false;
 
         // parse the contextValue into a JSON Node
         JsonNode jsonNode;
@@ -92,7 +90,7 @@ public class CriterionEvaluator {
 
                 // use JSON Pointer to resolve the node
                 JsonNode nodeAtPointer = jsonNode.at(ptr);
-                if (Objects.isNull(nodeAtPointer)) throw new ItarazzoIllegalStateException("Must not be null");
+                if (Objects.isNull(nodeAtPointer)) throw new ItarazzoIllegalStateException("Tried to resolve json pointer %s but got null".formatted(ptr));
 
                 // resolve expected if it is an expression
                 expected = resolver.resolveString(expected);
@@ -120,7 +118,7 @@ public class CriterionEvaluator {
 
                 var jsonNodeAsString = mapper.writeValueAsString(jsonNode);
                 var jsonNodeValue = JsonPath.parse(jsonNodeAsString).read(query);
-                if (Objects.isNull(jsonNodeValue)) throw new ItarazzoIllegalStateException("Must not be null");
+                if (Objects.isNull(jsonNodeValue)) throw new ItarazzoIllegalStateException("Tried to read node value for query %s but got null".formatted(query));
                 // Evaluate condition based on the extracted node (simple condition)
                 var resolvedCriterion = Criterion.builder()
                         .type(Criterion.CriterionType.SIMPLE)
@@ -136,7 +134,6 @@ public class CriterionEvaluator {
 
     private boolean evaluateXPath(final Criterion criterion, final ResolverContext resolverContext) {
         String contextValue = resolveCriterionContext(criterion.getContext(), resolverContext);
-        if (Objects.isNull(contextValue)) return false;
         return evaluateXPathExpression(contextValue, criterion.getCondition());
     }
 

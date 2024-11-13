@@ -112,7 +112,7 @@ public class SpecExpressionResolver extends HttpContextExpressionResolver {
                         result.append(resolved);
                     }
                 } else {
-                    throw new ItarazzoIllegalStateException("Must not be null");
+                    throw new ItarazzoIllegalStateException("Tried to resolve expression %s but got null".formatted(expr));
                 }
                 start = closeIndex + 1;
             }
@@ -157,12 +157,13 @@ public class SpecExpressionResolver extends HttpContextExpressionResolver {
 
         for (JsonNode sourceNode : stepsArray) {
             if (sourceNode.has("stepId") && sourceNode.get("stepId").asText().equals(targetName)) {
-                var resolved = ResolverUtils.getNestedValue(sourceNode, String.join(".", targetFields));
+                var nestedKeyPath = String.join(".", targetFields);
+                var resolved = ResolverUtils.getNestedValue(sourceNode, nestedKeyPath);
                 if (Objects.nonNull(resolved) && resolved.isTextual()) {
                     resolved = new TextNode(resolveString(resolved.asText()));
                     return resolved;
                 }
-                throw new ItarazzoIllegalStateException("Must not be null");
+                throw new ItarazzoIllegalStateException("Tried to resolved nested key path %s but got null".formatted(nestedKeyPath));
             }
         }
         return null;
@@ -178,12 +179,13 @@ public class SpecExpressionResolver extends HttpContextExpressionResolver {
 
         for (JsonNode sourceNode : stepsArray) {
             if (sourceNode.has("workflowId") && sourceNode.get("workflowId").asText().equals(targetName)) {
-                var resolved = ResolverUtils.getNestedValue(sourceNode, String.join(".", targetFields));
+                var nestedKeyPath = String.join(".", targetFields);
+                var resolved = ResolverUtils.getNestedValue(sourceNode, nestedKeyPath);
                 if (Objects.nonNull(resolved) && resolved.isTextual()) {
                     resolved = new TextNode(resolveString(resolved.asText()));
                     return resolved;
                 }
-                throw new ItarazzoIllegalStateException("Must not be null");
+                throw new ItarazzoIllegalStateException("Tried to resolved nested key path %s but got null".formatted(nestedKeyPath));
             }
         }
         return null;
