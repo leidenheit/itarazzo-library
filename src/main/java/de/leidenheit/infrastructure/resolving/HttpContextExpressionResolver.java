@@ -42,17 +42,20 @@ public class HttpContextExpressionResolver implements HttpExpressionResolver {
                     return null;
                 }
                 String subPath = null;
-                if (expression.contains("$response.body.")) {
+                if (expression.contains("$response.body#/")) {
+                    subPath = expression.substring("$response.body#/".length());
+                    subPath = convertJsonPointerToJsonPath(subPath);
+                } else if (expression.contains("$response.body.")) {
                     subPath = expression.substring("$response.body.".length());
-                } else if (expression.contains("$response.body#/")) {
-                    subPath = expression.substring("$response.body#/".length()).replace("/", ".");
+                } else if (expression.contains("$response.body[")) {
+                    subPath = expression.substring("$response.body".length());
                 }
 
                 if (Objects.isNull(subPath)) return responseBody;
 
                 try {
                     if (ContentType.JSON.matches(httpContext.getLatestContentType())) {
-                        return JsonPath.read(responseBody, "$.%s".formatted(subPath));
+                        return resolveJsonPath(responseBody, subPath);
                     } else if (ContentType.XML.matches(httpContext.getLatestContentType())) {
                         Document document = DocumentBuilderFactory.newInstance()
                                 .newDocumentBuilder()
@@ -121,5 +124,48 @@ public class HttpContextExpressionResolver implements HttpExpressionResolver {
     @Override
     public String resolveResponseBodyPayload(final Response response) {
         return (Objects.nonNull(response.body())) ? response.body().asString() : null;
+    }
+
+    private Object resolveJsonPath(final String responseBody, final String subPath) {
+        try {
+            // JSONPath requires array indices to be enclosed in brackets, e.g., body[0].items[10].id
+            String correctedPath = correctJsonPathSyntax(subPath);
+            return JsonPath.read(responseBody, "$." + correctedPath);
+        } catch (Exception e) {
+            throw new ItarazzoIllegalStateException("Invalid JSON Path: '$.%s'".formatted(subPath), e);
+        }
+    }
+
+    private String convertJsonPointerToJsonPath(final String pointerPath) {
+        // Convert JSON Pointer to JSONPath by replacing "/" with "." except the leading "/"
+        // and handling array indexes appropriately.
+        String[] segments = pointerPath.split("/");
+        StringBuilder jsonPathBuilder = new StringBuilder();
+
+        for (String segment : segments) {
+            if (segment.isEmpty()) {
+                // Ignore leading segment if it is empty (happens when splitting at leading '/')
+                continue;
+            }
+
+            if (!jsonPathBuilder.isEmpty()) {
+                jsonPathBuilder.append(".");
+            }
+
+            // If the segment is numeric, it represents an array index
+            if (segment.matches("\\d+")) {
+                jsonPathBuilder.append("[").append(segment).append("]");
+            } else {
+                jsonPathBuilder.append(segment);
+            }
+        }
+
+        return jsonPathBuilder.toString();
+    }
+
+    private String correctJsonPathSyntax(final String subPath) {
+        // Regular expression to replace all numeric parts with the correct array syntax
+        // Matches any dot followed by one or more digits and replaces it with brackets
+        return subPath.replaceAll("\\.(\\d+)", "[$1]");
     }
 }

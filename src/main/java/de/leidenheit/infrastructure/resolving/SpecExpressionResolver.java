@@ -1,5 +1,6 @@
 package de.leidenheit.infrastructure.resolving;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -88,6 +89,7 @@ public class SpecExpressionResolver extends HttpContextExpressionResolver {
         return resolved;
     }
 
+    // TODO refactor
     public String resolveString(final String expression) {
         StringBuilder result = new StringBuilder();
         if (expression.contains("{$")) {
@@ -116,17 +118,34 @@ public class SpecExpressionResolver extends HttpContextExpressionResolver {
                 }
                 start = closeIndex + 1;
             }
+        } else if (expression.contains("$")) {
+            var resolved = resolveExpression(expression, null);
+            if (resolved.toString().contains("{")) {
+                try {
+                    return mapper.writeValueAsString(resolved);
+                } catch (JsonProcessingException e) {
+                    throw new ItarazzoIllegalStateException(e);
+                }
+            }
+            result.append(resolved);
         } else {
-            result.append(resolveExpression(expression, null));
+            result.append(expression);
         }
         return result.toString();
+    }
+
+    // TODO refactor
+    public String resolveObject(final Object object) {
+        var objectAsNode = mapper.convertValue(object, ObjectNode.class);
+        resolveJsonObject(objectAsNode);
+        return objectAsNode.toString();
     }
 
     public void addResolved(final String key, final Object resolved) {
         this.expressionProvider.addResolved(key, resolved);
     }
 
-    public Object findResolved(final String expression){
+    public Object findResolved(final String expression) {
         return expressionProvider.findResolved(expression);
     }
 
@@ -145,7 +164,6 @@ public class SpecExpressionResolver extends HttpContextExpressionResolver {
         }
         return null;
     }
-
 
     private JsonNode resolveSteps(final ArrayNode stepsArray, final String keyPath) {
         String[] keys = keyPath.split("\\.");

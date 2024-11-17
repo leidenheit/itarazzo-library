@@ -210,6 +210,12 @@ public class RestAssuredStepExecutor implements StepExecutor {
         if (Objects.nonNull(step.getRequestBody())) {
             requestSpecification.contentType(step.getRequestBody().getContentType());
             String resolvedPayload = resolver.resolveString(step.getRequestBody().getPayload().toString());
+            if (resolvedPayload.contains("$") && (
+                    ContentType.JSON.matches(step.getRequestBody().getContentType())
+                            || ContentType.XML.matches(step.getRequestBody().getContentType()))
+            ) {
+                resolvedPayload = resolver.resolveObject(step.getRequestBody().getPayload());
+            }
 
             if (Objects.nonNull(step.getRequestBody().getReplacements())) {
                 var replacements = step.getRequestBody().getReplacements();

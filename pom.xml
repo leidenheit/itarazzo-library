@@ -6,14 +6,14 @@
 
     <groupId>io.github.leidenheit</groupId>
     <artifactId>itarazzo</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <packaging>jar</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Enables seamless execution of OpenAPI Initiative (OAI) [Arazzo
         Specifications](https://spec.openapis.org/arazzo/latest.html) in an integration testing context.
     </description>
-    <url>https://github.com/leidenheit/itarazzo</url>
+    <url>https://github.com/leidenheit/itarazzo-library</url>
 
     <developers>
         <developer>
